@@ -19,7 +19,8 @@
   }
   .character-button img {
     width: 60px;
-    height: 60px;
+    height: 80px;
+    object-fit: contain;
     display: block;
     margin: 0 auto;
   }
@@ -77,7 +78,7 @@ function startGame(character) {
   selectedCharacter = character;
   playerImg = new Image();
   playerImg.src = playerImages[character];
-  player = { x: 50, y: 300, width: 40, height: 40 };
+  player = { x: 50, y: 300, targetHeight: 80 };
   obstacles = [];
   isJumping = false;
   velocityY = 0;
@@ -100,12 +101,14 @@ function update() {
 
   // Draw player
   if (playerImg.complete) {
-    ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-  }
+    const aspectRatio = playerImg.width / playerImg.height;
+    const targetWidth = player.targetHeight * aspectRatio;
+    ctx.drawImage(playerImg, player.x, player.y, targetWidth, player.targetHeight);
 
-  ctx.font = '16px Arial';
-  ctx.fillStyle = 'black';
-  ctx.fillText(selectedCharacter.toUpperCase(), player.x - 10, player.y - 10);
+    ctx.font = '16px Arial';
+    ctx.fillStyle = 'black';
+    ctx.fillText(selectedCharacter.toUpperCase(), player.x, player.y - 10);
+  }
 
   // Move player
   if (isJumping) {
@@ -120,24 +123,24 @@ function update() {
 
   // Generate obstacles
   if (Math.random() < 0.01) {
-    obstacles.push({ x: canvas.width, y: 320, width: 30, height: 40 });
+    obstacles.push({ x: canvas.width, y: 320 });
   }
 
   // Move obstacles
   for (let i = 0; i < obstacles.length; i++) {
     obstacles[i].x -= 5;
     if (alienImg.complete) {
-      ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+      ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, 60, 60);
     } else {
       ctx.fillStyle = 'red';
-      ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+      ctx.fillRect(obstacles[i].x, obstacles[i].y, 60, 60);
     }
 
     // Collision detection
-    if (player.x < obstacles[i].x + obstacles[i].width &&
-        player.x + player.width > obstacles[i].x &&
-        player.y < obstacles[i].y + obstacles[i].height &&
-        player.y + player.height > obstacles[i].y) {
+    if (player.x < obstacles[i].x + 60 &&
+        player.x + 40 > obstacles[i].x &&
+        player.y < obstacles[i].y + 60 &&
+        player.y + 80 > obstacles[i].y) {
       alert('Game Over!');
       location.reload();
       return;
