@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Coldplay Run</title>
+<title>Coldplay Run Dino Style</title>
 <style>
-  body { margin: 0; overflow: hidden; font-family: sans-serif; background: skyblue; }
+  body { margin: 0; overflow: hidden; background: #f0f0f0; }
   #menu {
     position: absolute;
     top: 20%;
@@ -30,11 +30,12 @@
     color: #333;
     margin-top: 5px;
   }
-  canvas { background: transparent; display: block; margin: 0 auto; }
+  canvas { background: #f7f7f7; display: block; margin: 0 auto; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
 </head>
 <body>
+
 <div id="menu">
   <h1>Choose Your Coldplay Member</h1>
   <button class="character-button" onclick="startGame('chris')">
@@ -57,11 +58,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-let player, obstacles, isJumping, velocityY, gravity, selectedCharacter, gameOver;
+let player, obstacles, ground, isJumping, velocityY, gravity, selectedCharacter, gameOver;
 let backgroundImg, playerImg, alienImg;
 let musicStarted = false;
 let score = 0;
 let lastFrameTime = 0;
+let groundOffset = 0;
 
 const playerImages = {
   chris: 'chris.png',
@@ -88,11 +90,12 @@ function startGame(character) {
   selectedCharacter = character;
   playerImg = new Image();
   playerImg.src = playerImages[character];
-  player = { x: 50, y: canvas.height * 0.75, width: 40, height: 80 };
+  player = { x: 100, y: canvas.height * 0.75, width: 40, height: 80 };
   obstacles = [];
+  ground = { y: canvas.height * 0.85 };
   isJumping = false;
   velocityY = 0;
-  gravity = canvas.height * 0.002; // 체공시간 짧게
+  gravity = canvas.height * 0.003; // dino 스타일 중력
   gameOver = false;
   score = 0;
   lastFrameTime = performance.now();
@@ -112,15 +115,18 @@ function update(timestamp) {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw background
-  ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+  // Draw moving ground
+  groundOffset -= 5;
+  if (groundOffset <= -canvas.width) groundOffset = 0;
+  ctx.fillStyle = '#999';
+  ctx.fillRect(groundOffset, ground.y, canvas.width, 5);
+  ctx.fillRect(groundOffset + canvas.width, ground.y, canvas.width, 5);
 
   // Draw player
   if (playerImg.complete) {
     const aspectRatio = playerImg.width / playerImg.height;
     const targetWidth = player.height * aspectRatio;
     ctx.drawImage(playerImg, player.x, player.y, targetWidth, player.height);
-
     ctx.font = '16px Arial';
     ctx.fillStyle = 'black';
     ctx.fillText(selectedCharacter.toUpperCase(), player.x, player.y - 10);
@@ -138,13 +144,13 @@ function update(timestamp) {
   }
 
   // Generate obstacles
-  if (Math.random() < 0.008) {
+  if (Math.random() < 0.01) {
     obstacles.push({ x: canvas.width, y: canvas.height * 0.75 });
   }
 
   // Move obstacles
   for (let i = 0; i < obstacles.length; i++) {
-    obstacles[i].x -= canvas.width * 0.004;
+    obstacles[i].x -= canvas.width * 0.005;
 
     if (alienImg.complete) {
       ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, 40, 80);
@@ -153,17 +159,10 @@ function update(timestamp) {
       ctx.fillRect(obstacles[i].x, obstacles[i].y, 40, 80);
     }
 
-    // Collision detection (Alien 중심 10x10 박스)
-    const centerX = obstacles[i].x + 15; // 40/2 - 5
-    const centerY = obstacles[i].y + 35; // 80/2 - 5
-
-    const alienBox = {
-      x: centerX,
-      y: centerY,
-      width: 10,
-      height: 10
-    };
-
+    // Collision detection (Alien 중심 10x10)
+    const centerX = obstacles[i].x + 15;
+    const centerY = obstacles[i].y + 35;
+    const alienBox = { x: centerX, y: centerY, width: 10, height: 10 };
     const playerBox = {
       x: player.x,
       y: player.y,
@@ -192,30 +191,27 @@ function update(timestamp) {
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && !isJumping) {
     isJumping = true;
-    velocityY = -canvas.height * 0.013; // 점프 낮게 수정
+    velocityY = -canvas.height * 0.03; // Dino 스타일 점프
   }
 });
 
 window.addEventListener('touchstart', () => {
   if (!isJumping) {
     isJumping = true;
-    velocityY = -canvas.height * 0.013;
+    velocityY = -canvas.height * 0.03;
   }
 });
 
 function startMusic() {
   const synth = new Tone.Synth().toDestination();
   const notes = ['C4', 'E4', 'G4', 'B4', 'C5', 'B4', 'G4', 'E4'];
-
   let index = 0;
   Tone.Transport.scheduleRepeat(time => {
     synth.triggerAttackRelease(notes[index % notes.length], '8n', time);
     index++;
   }, '4n');
-
   Tone.Transport.start();
 }
 </script>
 </body>
 </html>
-
