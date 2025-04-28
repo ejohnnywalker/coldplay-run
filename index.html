@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Coldplay Run</title>
+<style>
+  body { margin: 0; overflow: hidden; font-family: sans-serif; background: #f0f0f0; }
+  canvas { background: white; display: block; margin: 0 auto; }
+  #menu {
+    position: absolute;
+    top: 30%;
+    width: 100%;
+    text-align: center;
+  }
+  button {
+    margin: 10px;
+    padding: 10px 20px;
+    font-size: 20px;
+    cursor: pointer;
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
+</head>
+<body>
+<div id="menu">
+  <h1>Choose Your Coldplay Member</h1>
+  <button onclick="startGame('Chris Martin')">Chris Martin</button>
+  <button onclick="startGame('Guy Berryman')">Guy Berryman</button>
+  <button onclick="startGame('Jonny Buckland')">Jonny Buckland</button>
+  <button onclick="startGame('Will Champion')">Will Champion</button>
+</div>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let player, obstacles, isJumping, velocityY, gravity, selectedCharacter, gameOver;
+let musicStarted = false;
+
+function startGame(character) {
+  document.getElementById('menu').style.display = 'none';
+  selectedCharacter = character;
+  player = { x: 50, y: 300, width: 50, height: 50, color: 'black' };
+  obstacles = [];
+  isJumping = false;
+  velocityY = 0;
+  gravity = 0.8;
+  gameOver = false;
+  if (!musicStarted) {
+    startMusic();
+    musicStarted = true;
+  }
+  requestAnimationFrame(update);
+}
+
+function update() {
+  if (gameOver) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw player
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  ctx.font = '16px Arial';
+  ctx.fillText(selectedCharacter, player.x - 10, player.y - 10);
+
+  // Move player
+  if (isJumping) {
+    velocityY += gravity;
+    player.y += velocityY;
+    if (player.y >= 300) {
+      player.y = 300;
+      isJumping = false;
+      velocityY = 0;
+    }
+  }
+
+  // Generate obstacles
+  if (Math.random() < 0.01) {
+    obstacles.push({ x: canvas.width, y: 320, width: 20, height: 30 });
+  }
+
+  // Move obstacles
+  for (let i = 0; i < obstacles.length; i++) {
+    obstacles[i].x -= 5;
+    ctx.fillStyle = 'red';
+    ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+
+    // Collision detection
+    if (player.x < obstacles[i].x + obstacles[i].width &&
+        player.x + player.width > obstacles[i].x &&
+        player.y < obstacles[i].y + obstacles[i].height &&
+        player.y + player.height > obstacles[i].y) {
+      alert('Game Over!');
+      location.reload();
+      return;
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !isJumping) {
+    isJumping = true;
+    velocityY = -15;
+  }
+});
+
+function startMusic() {
+  const synth = new Tone.Synth().toDestination();
+  const notes = ['C4', 'E4', 'G4', 'B4', 'C5', 'B4', 'G4', 'E4'];
+
+  let index = 0;
+  Tone.Transport.scheduleRepeat(time => {
+    synth.triggerAttackRelease(notes[index % notes.length], '8n', time);
+    index++;
+  }, '4n');
+
+  Tone.Transport.start();
+}
+</script>
+</body>
+</html>
