@@ -95,7 +95,7 @@ function startGame(character) {
   ground = { y: canvas.height * 0.85 };
   isJumping = false;
   velocityY = 0;
-  gravity = canvas.height * 0.003; // dino 스타일 중력
+  gravity = canvas.height * 0.003; // Dino 스타일 중력
   gameOver = false;
   score = 0;
   lastFrameTime = performance.now();
@@ -114,6 +114,9 @@ function update(timestamp) {
   score += deltaTime * 0.01;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw background (rainbow)
+  ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
 
   // Draw moving ground
   groundOffset -= 5;
@@ -150,10 +153,12 @@ function update(timestamp) {
 
   // Move obstacles
   for (let i = 0; i < obstacles.length; i++) {
-    obstacles[i].x -= canvas.width * 0.005;
+    obstacles[i].x -= canvas.width * 0.0075; // 이동속도 50% 증가
 
     if (alienImg.complete) {
-      ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, 40, 80);
+      const aspectRatio = alienImg.width / alienImg.height;
+      const alienWidth = 80 * aspectRatio;
+      ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, alienWidth, 80);
     } else {
       ctx.fillStyle = 'red';
       ctx.fillRect(obstacles[i].x, obstacles[i].y, 40, 80);
