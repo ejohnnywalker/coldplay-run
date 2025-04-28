@@ -10,6 +10,7 @@
     top: 20%;
     width: 100%;
     text-align: center;
+    z-index: 10;
   }
   .character-button {
     margin: 10px;
@@ -50,7 +51,7 @@
   </button>
 </div>
 
-<canvas id="gameCanvas" width="800" height="400"></canvas>
+<canvas id="gameCanvas"></canvas>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
@@ -59,6 +60,8 @@ const ctx = canvas.getContext('2d');
 let player, obstacles, isJumping, velocityY, gravity, selectedCharacter, gameOver;
 let backgroundImg, playerImg, alienImg;
 let musicStarted = false;
+let score = 0;
+let lastFrameTime = 0;
 
 const playerImages = {
   chris: 'chris.png',
@@ -73,17 +76,26 @@ backgroundImg.src = 'rainbow_bg.png';
 alienImg = new Image();
 alienImg.src = 'alien.png';
 
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
 function startGame(character) {
   document.getElementById('menu').style.display = 'none';
   selectedCharacter = character;
   playerImg = new Image();
   playerImg.src = playerImages[character];
-  player = { x: 50, y: 300, targetHeight: 80 };
+  player = { x: 50, y: canvas.height * 0.75, targetHeight: canvas.height * 0.2 };
   obstacles = [];
   isJumping = false;
   velocityY = 0;
-  gravity = 0.8;
+  gravity = canvas.height * 0.002;
   gameOver = false;
+  score = 0;
+  lastFrameTime = performance.now();
   if (!musicStarted) {
     startMusic();
     musicStarted = true;
@@ -91,8 +103,12 @@ function startGame(character) {
   requestAnimationFrame(update);
 }
 
-function update() {
+function update(timestamp) {
   if (gameOver) return;
+
+  const deltaTime = timestamp - lastFrameTime;
+  lastFrameTime = timestamp;
+  score += deltaTime * 0.01;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -114,8 +130,8 @@ function update() {
   if (isJumping) {
     velocityY += gravity;
     player.y += velocityY;
-    if (player.y >= 300) {
-      player.y = 300;
+    if (player.y >= canvas.height * 0.75) {
+      player.y = canvas.height * 0.75;
       isJumping = false;
       velocityY = 0;
     }
@@ -123,12 +139,12 @@ function update() {
 
   // Generate obstacles
   if (Math.random() < 0.01) {
-    obstacles.push({ x: canvas.width, y: 320 });
+    obstacles.push({ x: canvas.width, y: canvas.height * 0.8 });
   }
 
   // Move obstacles
   for (let i = 0; i < obstacles.length; i++) {
-    obstacles[i].x -= 5;
+    obstacles[i].x -= canvas.width * 0.005;
     if (alienImg.complete) {
       ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, 60, 60);
     } else {
@@ -136,16 +152,34 @@ function update() {
       ctx.fillRect(obstacles[i].x, obstacles[i].y, 60, 60);
     }
 
-    // Collision detection
-    if (player.x < obstacles[i].x + 60 &&
-        player.x + 40 > obstacles[i].x &&
-        player.y < obstacles[i].y + 60 &&
-        player.y + 80 > obstacles[i].y) {
-      alert('Game Over!');
+    // Collision detection (느슨하게, 70% 충돌 박스)
+    const playerBox = {
+      x: player.x,
+      y: player.y,
+      width: player.targetHeight * (playerImg.width / playerImg.height) * 0.7,
+      height: player.targetHeight * 0.7
+    };
+    const obstacleBox = {
+      x: obstacles[i].x + 10,
+      y: obstacles[i].y + 10,
+      width: 40,
+      height: 40
+    };
+
+    if (playerBox.x < obstacleBox.x + obstacleBox.width &&
+        playerBox.x + playerBox.width > obstacleBox.x &&
+        playerBox.y < obstacleBox.y + obstacleBox.height &&
+        playerBox.y + playerBox.height > obstacleBox.y) {
+      alert('Game Over!\nScore: ' + Math.floor(score));
       location.reload();
       return;
     }
   }
+
+  // Draw score
+  ctx.font = '24px Arial';
+  ctx.fillStyle = 'black';
+  ctx.fillText('Score: ' + Math.floor(score), 20, 40);
 
   requestAnimationFrame(update);
 }
@@ -153,7 +187,14 @@ function update() {
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && !isJumping) {
     isJumping = true;
-    velocityY = -15;
+    velocityY = -canvas.height * 0.015;
+  }
+});
+
+window.addEventListener('touchstart', () => {
+  if (!isJumping) {
+    isJumping = true;
+    velocityY = -canvas.height * 0.015;
   }
 });
 
