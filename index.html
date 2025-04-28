@@ -4,42 +4,80 @@
 <meta charset="UTF-8">
 <title>Coldplay Run</title>
 <style>
-  body { margin: 0; overflow: hidden; font-family: sans-serif; background: #f0f0f0; }
-  canvas { background: white; display: block; margin: 0 auto; }
+  body { margin: 0; overflow: hidden; font-family: sans-serif; background: skyblue; }
   #menu {
     position: absolute;
-    top: 30%;
+    top: 20%;
     width: 100%;
     text-align: center;
   }
-  button {
+  .character-button {
     margin: 10px;
-    padding: 10px 20px;
-    font-size: 20px;
     cursor: pointer;
+    border: none;
+    background: transparent;
   }
+  .character-button img {
+    width: 60px;
+    height: 60px;
+    display: block;
+    margin: 0 auto;
+  }
+  .character-name {
+    font-size: 16px;
+    color: #333;
+    margin-top: 5px;
+  }
+  canvas { background: transparent; display: block; margin: 0 auto; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
 </head>
 <body>
 <div id="menu">
   <h1>Choose Your Coldplay Member</h1>
-  <button onclick="startGame('Chris Martin')">Chris Martin</button>
-  <button onclick="startGame('Guy Berryman')">Guy Berryman</button>
-  <button onclick="startGame('Jonny Buckland')">Jonny Buckland</button>
-  <button onclick="startGame('Will Champion')">Will Champion</button>
+  <button class="character-button" onclick="startGame('chris')">
+    <img src="chris.png" alt="Chris"><div class="character-name">Chris</div>
+  </button>
+  <button class="character-button" onclick="startGame('johnny')">
+    <img src="johnny.png" alt="Johnny"><div class="character-name">Johnny</div>
+  </button>
+  <button class="character-button" onclick="startGame('will')">
+    <img src="will.png" alt="Will"><div class="character-name">Will</div>
+  </button>
+  <button class="character-button" onclick="startGame('guy')">
+    <img src="guy.png" alt="Guy"><div class="character-name">Guy</div>
+  </button>
 </div>
+
 <canvas id="gameCanvas" width="800" height="400"></canvas>
+
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
 let player, obstacles, isJumping, velocityY, gravity, selectedCharacter, gameOver;
+let backgroundImg, playerImg, alienImg;
 let musicStarted = false;
+
+const playerImages = {
+  chris: 'chris.png',
+  johnny: 'johnny.png',
+  will: 'will.png',
+  guy: 'guy.png'
+};
+
+backgroundImg = new Image();
+backgroundImg.src = 'rainbow_bg.png';
+
+alienImg = new Image();
+alienImg.src = 'alien.png';
 
 function startGame(character) {
   document.getElementById('menu').style.display = 'none';
   selectedCharacter = character;
-  player = { x: 50, y: 300, width: 50, height: 50, color: 'black' };
+  playerImg = new Image();
+  playerImg.src = playerImages[character];
+  player = { x: 50, y: 300, width: 40, height: 40 };
   obstacles = [];
   isJumping = false;
   velocityY = 0;
@@ -57,11 +95,17 @@ function update() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Draw background
+  ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+
   // Draw player
-  ctx.fillStyle = player.color;
-  ctx.fillRect(player.x, player.y, player.width, player.height);
+  if (playerImg.complete) {
+    ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+  }
+
   ctx.font = '16px Arial';
-  ctx.fillText(selectedCharacter, player.x - 10, player.y - 10);
+  ctx.fillStyle = 'black';
+  ctx.fillText(selectedCharacter.toUpperCase(), player.x - 10, player.y - 10);
 
   // Move player
   if (isJumping) {
@@ -76,14 +120,18 @@ function update() {
 
   // Generate obstacles
   if (Math.random() < 0.01) {
-    obstacles.push({ x: canvas.width, y: 320, width: 20, height: 30 });
+    obstacles.push({ x: canvas.width, y: 320, width: 30, height: 40 });
   }
 
   // Move obstacles
   for (let i = 0; i < obstacles.length; i++) {
     obstacles[i].x -= 5;
-    ctx.fillStyle = 'red';
-    ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+    if (alienImg.complete) {
+      ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+    } else {
+      ctx.fillStyle = 'red';
+      ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+    }
 
     // Collision detection
     if (player.x < obstacles[i].x + obstacles[i].width &&
