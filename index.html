@@ -1,1 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Coldplay Run</title>
+<style>
+  body { margin: 0; overflow: hidden; font-family: sans-serif; background: skyblue; }
+  #menu {
+    position: absolute;
+    top: 20%;
+    width: 100%;
+    text-align: center;
+    z-index: 10;
+  }
+  .character-button {
+    margin: 10px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+  }
+  .character-button img {
+    width: 60px;
+    height: 80px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+  }
+  .character-name {
+    font-size: 16px;
+    color: #333;
+    margin-top: 5px;
+  }
+  canvas { background: transparent; display: block; margin: 0 auto; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
+</head>
+<body>
+<div id="menu">
+  <h1>Choose Your Coldplay Member</h1>
+  <button class="character-button" onclick="startGame('chris')">
+    <img src="chris.png" alt="Chris"><div class="character-name">Chris</div>
+  </button>
+  <button class="character-button" onclick="startGame('johnny')">
+    <img src="johnny.png" alt="Johnny"><div class="character-name">Johnny</div>
+  </button>
+  <button class="character-button" onclick="startGame('will')">
+    <img src="will.png" alt="Will"><div class="character-name">Will</div>
+  </button>
+  <button class="character-button" onclick="startGame('guy')">
+    <img src="guy.png" alt="Guy"><div class="character-name">Guy</div>
+  </button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let player, obstacles, isJumping, velocityY, gravity, selectedCharacter, gameOver;
+let backgroundImg, playerImg, alienImg;
+let musicStarted = false;
+let score = 0;
+let lastFrameTime = 0;
+
+const playerImages = {
+  chris: 'chris.png',
+  johnny: 'johnny.png',
+  will: 'will.png',
+  guy: 'guy.png'
+};
+
+backgroundImg = new Image();
+backgroundImg.src = 'rainbow_bg.png';
+
+alienImg = new Image();
+alienImg.src = 'alien.png';
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function startGame(character) {
+  document.getElementById('menu').style.display = 'none';
+  selectedCharacter = character;
+  playerImg = new Image();
+  playerImg.src = playerImages[character];
+  player = { x: 50, y: canvas.height * 0.75, width: 40, height: 80 };
+  obstacles = [];
+  isJumping = false;
+  velocityY = 0;
+  gravity = canvas.height * 0.002; // 체공시간 짧게
+  gameOver = false;
+  score = 0;
+  lastFrameTime = performance.now();
+  if (!musicStarted) {
+    startMusic();
+    musicStarted = true;
+  }
+  requestAnimationFrame(update);
+}
+
+function update(timestamp) {
+  if (gameOver) return;
+
+  const deltaTime = timestamp - lastFrameTime;
+  lastFrameTime = timestamp;
+  score += deltaTime * 0.01;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw background
+  ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+
+  // Draw player
+  if (playerImg.complete) {
+    const aspectRatio = playerImg.width / playerImg.height;
+    const targetWidth = player.height * aspectRatio;
+    ctx.drawImage(playerImg, player.x, player.y, targetWidth, player.height);
+
+    ctx.font = '16px Arial';
+    ctx.fillStyle = 'black';
+    ctx.fillText(selectedCharacter.toUpperCase(), player.x, player.y - 10);
+  }
+
+  // Move player
+  if (isJumping) {
+    velocityY += gravity;
+    player.y += velocityY;
+    if (player.y >= canvas.height * 0.75) {
+      player.y = canvas.height * 0.75;
+      isJumping = false;
+      velocityY = 0;
+    }
+  }
+
+  // Generate obstacles
+  if (Math.random() < 0.008) {
+    obstacles.push({ x: canvas.width, y: canvas.height * 0.75 });
+  }
+
+  // Move obstacles
+  for (let i = 0; i < obstacles.length; i++) {
+    obstacles[i].x -= canvas.width * 0.004;
+
+    if (alienImg.complete) {
+      ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, 40, 80);
+    } else {
+      ctx.fillStyle = 'red';
+      ctx.fillRect(obstacles[i].x, obstacles[i].y, 40, 80);
+    }
+
+    // Collision detection (Alien 중심 10x10 박스)
+    const centerX = obstacles[i].x + 15; // 40/2 - 5
+    const centerY = obstacles[i].y + 35; // 80/2 - 5
+
+    const alienBox = {
+      x: centerX,
+      y: centerY,
+      width: 10,
+      height: 10
+    };
+
+    const playerBox = {
+      x: player.x,
+      y: player.y,
+      width: player.height * (playerImg.width / playerImg.height),
+      height: player.height
+    };
+
+    if (playerBox.x < alienBox.x + alienBox.width &&
+        playerBox.x + playerBox.width > alienBox.x &&
+        playerBox.y < alienBox.y + alienBox.height &&
+        playerBox.y + playerBox.height > alienBox.y) {
+      alert('Game Over!\nScore: ' + Math.floor(score));
+      location.reload();
+      return;
+    }
+  }
+
+  // Draw score
+  ctx.font = '24px Arial';
+  ctx.fillStyle = 'black';
+  ctx.fillText('Score: ' + Math.floor(score), 20, 40);
+
+  requestAnimationFrame(update);
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !isJumping) {
+    isJumping = true;
+    velocityY = -canvas.height * 0.013; // 점프 낮게 수정
+  }
+});
+
+window.addEventListener('touchstart', () => {
+  if (!isJumping) {
+    isJumping = true;
+    velocityY = -canvas.height * 0.013;
+  }
+});
+
+function startMusic() {
+  const synth = new Tone.Synth().toDestination();
+  const notes = ['C4', 'E4', 'G4', 'B4', 'C5', 'B4', 'G4', 'E4'];
+
+  let index = 0;
+  Tone.Transport.scheduleRepeat(time => {
+    synth.triggerAttackRelease(notes[index % notes.length], '8n', time);
+    index++;
+  }, '4n');
+
+  Tone.Transport.start();
+}
+</script>
+</body>
+</html>
 
