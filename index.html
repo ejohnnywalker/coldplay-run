@@ -88,11 +88,11 @@ function startGame(character) {
   selectedCharacter = character;
   playerImg = new Image();
   playerImg.src = playerImages[character];
-  player = { x: 50, y: canvas.height * 0.75, width: 40, height: 40 };
+  player = { x: 50, y: canvas.height * 0.75, width: 40, height: 80 };
   obstacles = [];
   isJumping = false;
   velocityY = 0;
-  gravity = canvas.height * 0.002;
+  gravity = canvas.height * 0.0007; // 체공시간 3배로 길게
   gameOver = false;
   score = 0;
   lastFrameTime = performance.now();
@@ -117,7 +117,9 @@ function update(timestamp) {
 
   // Draw player
   if (playerImg.complete) {
-    ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+    const aspectRatio = playerImg.width / playerImg.height;
+    const targetWidth = player.height * aspectRatio;
+    ctx.drawImage(playerImg, player.x, player.y, targetWidth, player.height);
 
     ctx.font = '16px Arial';
     ctx.fillStyle = 'black';
@@ -142,18 +144,18 @@ function update(timestamp) {
 
   // Move obstacles
   for (let i = 0; i < obstacles.length; i++) {
-    obstacles[i].x -= canvas.width * 0.004; // 속도 유지
+    obstacles[i].x -= canvas.width * 0.004;
 
     if (alienImg.complete) {
-      ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, 40, 40);
+      ctx.drawImage(alienImg, obstacles[i].x, obstacles[i].y, 40, 80);
     } else {
       ctx.fillStyle = 'red';
-      ctx.fillRect(obstacles[i].x, obstacles[i].y, 40, 40);
+      ctx.fillRect(obstacles[i].x, obstacles[i].y, 40, 80);
     }
 
-    // Collision detection (Alien 중심 10x10)
+    // Collision detection (Alien 중심 10x10 박스)
     const centerX = obstacles[i].x + 15; // 40/2 - 5
-    const centerY = obstacles[i].y + 15;
+    const centerY = obstacles[i].y + 35; // 80/2 - 5
 
     const alienBox = {
       x: centerX,
@@ -165,7 +167,7 @@ function update(timestamp) {
     const playerBox = {
       x: player.x,
       y: player.y,
-      width: player.width,
+      width: player.height * (playerImg.width / playerImg.height),
       height: player.height
     };
 
@@ -190,14 +192,14 @@ function update(timestamp) {
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && !isJumping) {
     isJumping = true;
-    velocityY = -canvas.height * 0.02; // 점프 높이 복구
+    velocityY = -canvas.height * 0.04; // 점프 2배 높이
   }
 });
 
 window.addEventListener('touchstart', () => {
   if (!isJumping) {
     isJumping = true;
-    velocityY = -canvas.height * 0.02;
+    velocityY = -canvas.height * 0.04;
   }
 });
 
